@@ -1,5 +1,8 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.sparse import dok_matrix
+from scipy.sparse.linalg import spsolve
+
 
 class Node:
     def __init__(self, id_no, coord_x, coord_y):
@@ -47,10 +50,12 @@ class TrussModel:
 
     def build_matrix(self):
         self.n_nodes = len(self.nodes)
-        self.k_global = np.zeros((2*self.n_nodes, 2*self.n_nodes))
+        self.k_global = dok_matrix((2 * self.n_nodes, 2 * self.n_nodes))
         for element in self.elements:
-            index = np.ix_(element.dof, element.dof)
-            self.k_global[index] += element.k_local
+            for i in range(4):
+                for j in range(4):
+                    self.k_global[(element.dof[i], element.dof[j])] += element.k_local[i, j]
+        self.k_global = self.k_global.tocsr()
         self.f_global = np.zeros(2*self.n_nodes)
         pass
 
@@ -71,7 +76,7 @@ class TrussModel:
         free_dofs = [x for x in range(2 * self.n_nodes) if x not in self.fixed_dofs]
         k_free = self.k_global[np.ix_(free_dofs, free_dofs)]
         f_free = self.f_global[free_dofs]
-        u_free = np.linalg.solve(k_free, f_free)
+        u_free = spsolve(k_free, f_free)
         self.u_global[free_dofs] = u_free
         for node in self.nodes:
             node.x_def += self.u_global[2 * node.id]
