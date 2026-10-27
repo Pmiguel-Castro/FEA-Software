@@ -21,12 +21,13 @@ class Node:
         pass
 
 class Element:
-    def __init__(self, init_node, end_node, area, material):
+    def __init__(self, init_node, end_node, height, width, material):
         self.start = init_node
         self.end = end_node
-        self.area = area
+        self.area = height * width
         self.e = material.e
         self.v = material.v
+        self.inertia = (width * height ** 3) / 12
         self.length = ((self.start.x - self.end.x) ** 2 + 
                        (self.start.y - self.end.y) ** 2) ** (0.5)
         self.sin = (self.end.y - self.start.y) / self.length 
@@ -62,7 +63,7 @@ class TrussModel:
             index = np.ix_(element.dof, element.dof)
             self.k_global[index] += element.k_local
         self.k_global = self.k_global.tocsr()
-        self.f_global = np.zeros(2*self.n_nodes)
+        self.f_global = np.zeros(2 * self.n_nodes)
         pass
 
     def apply_force(self, node_id, f_x, f_y):
@@ -118,3 +119,4 @@ modelo_teste.apply_force(2, 0, -5*(10**7))
 
 modelo_teste.solve()
 modelo_teste.plot_truss()
+print(f"ux: {modelo_teste.u_global[4]}\nuy: {modelo_teste.u_global[5]}")
