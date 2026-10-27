@@ -41,22 +41,27 @@ class FrameElement:
         EI_L2 = 6 * self.e * self.inertia / (self.length ** 2)
         EI_L3 = 12 * self.e * self.inertia / (self.length ** 3)
 
-        k_bar = np.array([[ EA_L,   0  ,    0  , -EA_L,   0  ,    0  ],
+        self.k_bar = np.array([[ EA_L,   0  ,    0  , -EA_L,   0  ,    0  ],
                           [  0  , EI_L3,  EI_L2,   0  ,-EI_L3,  EI_L2],
                           [  0  , EI_L2,  EI_L ,   0  ,-EI_L2, EI_L_2],
                           [-EA_L,   0  ,    0  ,  EA_L,   0  ,    0  ],
                           [  0  ,-EI_L3, -EI_L2,   0  , EI_L3, -EI_L2],
                           [  0  , EI_L2, EI_L_2,   0  ,-EI_L2,  EI_L ]])
-        t = np.array([[ self.cos, self.sin, 0 ,    0    ,    0    , 0],
+        self.t = np.array([[ self.cos, self.sin, 0 ,    0    ,    0    , 0],
                       [-self.sin, self.cos, 0 ,    0    ,    0    , 0],
                       [    0    ,    0    , 1 ,    0    ,    0    , 0],
                       [    0    ,    0    , 0 , self.cos, self.sin, 0],
                       [    0    ,    0    , 0 ,-self.sin, self.cos, 0],
                       [    0    ,    0    , 0 ,    0    ,    0    , 1]])
         
-        self.k_local = t.T @ k_bar @ t
+        self.k_local = self.t.T @ self.k_bar @ self.t
         self.dof = self.start.dof + self.end.dof
         pass
+
+    def get_int_forces(self, u_global):
+        u_bar = u_global[self.dof]
+        f_bar = self.k_bar @ self.t @ u_bar
+        return f_bar
 
 class FrameModel:
     def __init__(self):
@@ -114,8 +119,15 @@ class FrameModel:
 
     def plot_frame(self):
         for element in self.elements:
-            plt.plot([element.start.x, element.end.x], [element.start.y, element.end.y], linestyle = '--', color = 'blue')
-            plt.plot([element.start.x_def, element.end.x_def], [element.start.y_def, element.end.y_def], linestyle = '--', marker='o', color = 'red')
+            normal_force = element.get_int_forces(modelo_teste.u_global)[3]
+            if normal_force > 1.0: 
+                bar_color = 'red'
+            elif normal_force < -1.0: 
+                bar_color = 'blue'
+            else: 
+                bar_color = 'gray'
+            plt.plot([element.start.x, element.end.x], [element.start.y, element.end.y], linestyle = '--', marker='o', color = 'black')
+            plt.plot([element.start.x_def, element.end.x_def], [element.start.y_def, element.end.y_def], linestyle = '--', marker='o', color = bar_color)
         plt.axis('equal')
         plt.show()
 
@@ -140,5 +152,10 @@ modelo_teste.apply_constraint(1, False, True, False)
 modelo_teste.apply_force(2, 0, -5*(10**7), 0)
 
 modelo_teste.solve()
+
+for element in modelo_teste.elements:
+    print(f"{element.get_int_forces(modelo_teste.u_global)}\n")
+
 modelo_teste.plot_frame()
-print(f"ux: {modelo_teste.u_global[6]}\nuy: {modelo_teste.u_global[7]}\ntheta: {modelo_teste.u_global[8]}")
+#print(f"ux: {modelo_teste.u_global[6]}\nuy: {modelo_teste.u_global[7]}\ntheta: {modelo_teste.u_global[8]}")
+
