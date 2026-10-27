@@ -4,6 +4,12 @@ from scipy.sparse import dok_matrix
 from scipy.sparse.linalg import spsolve
 
 
+class Material:
+    def __init__(self, young_modulus, poisson_ratio):
+        self.e = young_modulus
+        self.v = poisson_ratio
+        pass
+
 class Node:
     def __init__(self, id_no, coord_x, coord_y):
         self.id = id_no
@@ -15,11 +21,12 @@ class Node:
         pass
 
 class Element:
-    def __init__(self, init_node, end_node, height, width, young_modulus):
+    def __init__(self, init_node, end_node, area, material):
         self.start = init_node
         self.end = end_node
-        self.area = height*width
-        self.e = young_modulus
+        self.area = area
+        self.e = material.e
+        self.v = material.v
         self.length = ((self.start.x - self.end.x) ** 2 + 
                        (self.start.y - self.end.y) ** 2) ** (0.5)
         self.sin = (self.end.y - self.start.y) / self.length 
@@ -52,9 +59,8 @@ class TrussModel:
         self.n_nodes = len(self.nodes)
         self.k_global = dok_matrix((2 * self.n_nodes, 2 * self.n_nodes))
         for element in self.elements:
-            for i in range(4):
-                for j in range(4):
-                    self.k_global[(element.dof[i], element.dof[j])] += element.k_local[i, j]
+            index = np.ix_(element.dof, element.dof)
+            self.k_global[index] += element.k_local
         self.k_global = self.k_global.tocsr()
         self.f_global = np.zeros(2*self.n_nodes)
         pass
@@ -94,17 +100,15 @@ node1 = Node(0, 0, 0)
 node2 = Node(1, 1, 0)
 node3 = Node(2, 0.5, 0.5)
 
-element1 = Element(node1, node2, 0.1, 0.1, 7.1*(10**10))
-element2 = Element(node1, node3, 0.1, 0.1, 7.1*(10**10))
-element3 = Element(node2, node3, 0.1, 0.1, 7.1*(10**10))
+steel = Material(7.1*(10**10), 0.33)
 
 modelo_teste = TrussModel()
 modelo_teste.add_node(node1)
 modelo_teste.add_node(node2)
 modelo_teste.add_node(node3)
-modelo_teste.add_element(element1)
-modelo_teste.add_element(element2)
-modelo_teste.add_element(element3)
+modelo_teste.add_element(Element(node1, node2, 0.1, 0.1, steel))
+modelo_teste.add_element(Element(node1, node3, 0.1, 0.1, steel))
+modelo_teste.add_element(Element(node2, node3, 0.1, 0.1, steel))
 
 modelo_teste.build_matrix()
 
