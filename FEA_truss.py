@@ -2,43 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse import dok_matrix
 from scipy.sparse.linalg import spsolve
-
-
-class Material:
-    def __init__(self, young_modulus, poisson_ratio):
-        self.e = young_modulus
-        self.v = poisson_ratio
-        pass
-
-class Node:
-    def __init__(self, id_no, coord_x, coord_y):
-        self.id = id_no
-        self.x = coord_x
-        self.y = coord_y
-        self.dof = [self.id * 2, self.id * 2 + 1]
-        self.x_def = self.x
-        self.y_def = self.y
-        pass
-
-class Element:
-    def __init__(self, init_node, end_node, height, width, material):
-        self.start = init_node
-        self.end = end_node
-        self.area = height * width
-        self.e = material.e
-        self.v = material.v
-        self.inertia = (width * height ** 3) / 12
-        self.length = ((self.start.x - self.end.x) ** 2 + 
-                       (self.start.y - self.end.y) ** 2) ** (0.5)
-        self.sin = (self.end.y - self.start.y) / self.length 
-        self.cos = (self.end.x - self.start.x) / self.length
-        self.k = self.e * self.area / self.length
-        self.k_local = self.k * np.array([[self.cos ** 2, self.cos * self.sin, -self.cos ** 2, -self.cos * self.sin],
-                                          [self.cos * self.sin, self.sin ** 2, -self.cos * self.sin, -self.sin ** 2],
-                                          [-self.cos ** 2, -self.cos * self.sin, self.cos ** 2, self.cos * self.sin],
-                                          [-self.cos * self.sin, -self.sin ** 2, self.cos * self.sin, self.sin ** 2]])
-        self.dof = self.start.dof + self.end.dof
-        pass
+from fea.model.element import TrussElement as Element
 
 class TrussModel:
     def __init__(self):
